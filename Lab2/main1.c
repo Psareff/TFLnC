@@ -91,6 +91,8 @@ token_t *tokenize(const char *expr, int *count)
 	token_type_e type = INVALID;
 	count = 0;
 
+	token_t *tokens = malloc(sizeof(token_t));
+
 	for(; *expr != '\0'; expr++)
 	{
 		lexeme_start = lexeme_end;
@@ -159,8 +161,9 @@ number_recognition:
 			default:
 				goto emergency_exit;
 		}
-		token_t t = create_token(buffer, lexeme_start, lexeme_end, type);
-
+		tokens[current_token] = create_token(buffer, lexeme_start, lexeme_end, type);
+		current_token++;
+		tokens = realloc(tokens, sizeof(token_t) * (current_token + 1));
 		lexeme_end++;
 		count++;
 	}
