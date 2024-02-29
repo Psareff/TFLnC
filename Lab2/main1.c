@@ -4,7 +4,7 @@
 
 typedef enum token_type
 {
-	IDENT, KEYWORD, OPERATION, PAREN, INVALID, WHITESPACE, NUMBER, EQUALS, ASSIGNMENT, COMMA, SEMICOLON
+	IDENT, KEYWORD, OPERATION, PAREN, BRACE, INVALID, WHITESPACE, NUMBER, EQUALS, ASSIGNMENT, COMMA, SEMICOLON
 } token_type_e;
 
 typedef enum errors
@@ -38,6 +38,8 @@ switch(type) \
 			return "OPERATION"; \
 		case PAREN: \
 			return "PAREN"; \
+		case BRACE: \
+			return "BRACE"; \
 		case INVALID: \
 			return "INVALID"; \
 		case WHITESPACE: \
@@ -57,8 +59,8 @@ switch(type) \
 typedef struct token
 {
 	char *lexeme;
-	unsigned lexeme_start;
-	unsigned lexeme_end;
+	int lexeme_start;
+	int lexeme_end;
 	token_type_e type;
 } token_t;
 
@@ -67,7 +69,7 @@ char *type_to_str(token_type_e type)
 	TYPE_TO_STR(type);
 }
 
-token_t create_token(const char *expr, int start, int end, token_type_e type)
+token_t *create_token(const char *expr, int start, int end, token_type_e type)
 {
 	token_t *token = malloc(sizeof(token_t));
 	token->lexeme = malloc(end - start + 1);
@@ -76,7 +78,7 @@ token_t create_token(const char *expr, int start, int end, token_type_e type)
 	token->type = type;
 	memcpy(token->lexeme, expr + start, end - start + 1);
 	IS_KEYWORD(token);
-	printf("%10s | [%2d - %2d] | %s\n", token->lexeme, token->lexeme_start, token->lexeme_end, type_to_str(token->type));
+	return token;
 
 }
 
@@ -87,9 +89,8 @@ token_t *tokenize(const char *expr, int *count)
 	memcpy(buffer, expr, strlen(expr) + 1);
 
 	int lexeme_start, lexeme_end = 0;
-	int current_token = 0;
 	token_type_e type = INVALID;
-	count = 0;
+	*count = 0;
 
 	token_t *tokens = malloc(sizeof(token_t));
 
@@ -152,6 +153,10 @@ number_recognition:
 			case ')':
 				type = PAREN;
 				break;
+			case '{':
+			case '}':
+				type = BRACE;
+				break;
 			case ',':
 				type = COMMA;
 				break;
@@ -161,28 +166,31 @@ number_recognition:
 			default:
 				goto emergency_exit;
 		}
-		tokens[current_token] = create_token(buffer, lexeme_start, lexeme_end, type);
-		current_token++;
-		tokens = realloc(tokens, sizeof(token_t) * (current_token + 1));
+		token_t *t = create_token(buffer, lexeme_start, lexeme_end, type);
+		memcpy(&tokens[*count], t, sizeof(token_t));
+		*count = *count + 1;
+		tokens = realloc(tokens, sizeof(token_t) * (*count + 1));
 		lexeme_end++;
-		count++;
 	}
 	printf("Lexeme end=%d\n", lexeme_end);
-	return NULL;
+	return tokens;
 emergency_exit:
+	printf("%s\n", buffer);
+	printf("%*c -here\n", lexeme_start + 1, '^');
 	fprintf(stderr, "ERROR=%d, Invalid symbol at [%d]!\n", CRITICAL, lexeme_start);
+	*count = -1;
 	return NULL;
 }
 
 int main()
 {
-	char *expr = "operation = (int x, int y) -> x + y + -1235.213;_";
-	int count;
+	char *expr = "operation = (int x, int y) -> x + y + -1235.213;"
+	             "operation = () -> { int x; int y; xad * y};";
+	int count = 0;
 	token_t *tokens = tokenize(expr, &count);
-	printf("Count: %d\n", count);
-	/*for (int i = 0; i < count; i++)
-		printf("%s [%d - %d], %d\n", tokens[i].lexeme,
-		                             tokens[i].lexeme_start,
-		                             tokens[i].lexeme_end,
-		                             tokens[i].type);*/
+	for (int i = 0; i < count; i++)
+		printf("%15s | [%4d - %4d] | %s\n", tokens[i].lexeme,
+		                                    tokens[i].lexeme_start,
+		                                    tokens[i].lexeme_end,
+		                                    type_to_str(tokens[i].type));
 }
