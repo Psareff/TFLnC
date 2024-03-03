@@ -20,6 +20,7 @@ typedef struct code_editor
 {
 	GtkBuilder *builder;
 	GObject *window;
+	GObject *status;
 	FILE *fp;
 	char not_saved;
 	code_editor_text_view_t code_view;
@@ -62,20 +63,20 @@ typedef struct lexeme_color
 
 const lexeme_color_t colors[LEXEME_COLORS_COUNT] = 
 {
-	{"#8E9AAF", "typedef"},
-	{"#8E9AAF", "int"},
-	{"#8E9AAF", "double"},
-	{"#8E9AAF", "char"},
-	{"#8E9AAF", "unsigned"},
-	{"#8E9AAF", "static"},
+	{"#6895d2", "typedef"},
+	{"#6895d2", "int"},
+	{"#6895d2", "double"},
+	{"#6895d2", "char"},
+	{"#6895d2", "unsigned"},
+	{"#6895d2", "static"},
 
-	{"#295550", "#define"},
-	{"#295550", "#include"},
-	{"#295550", "#ifdef"},
-	{"#295550", "#endif"},
+	{"#96E9C6", "#define"},
+	{"#96E9C6", "#include"},
+	{"#96E9C6", "#ifdef"},
+	{"#96E9C6", "#endif"},
 
-	{"#DEF6CA", "struct"},
-	{"#DEF6CA", "class"},
+	{"#FF6868", "struct"},
+	{"#FF6868", "class"},
 };
 
 /*

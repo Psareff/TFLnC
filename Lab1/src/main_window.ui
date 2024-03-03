@@ -424,7 +424,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkStatusbar">
+              <object class="GtkStatusbar" id="status">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="margin-left">10</property>

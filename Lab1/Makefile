@@ -17,9 +17,14 @@ $(OUTDIR)/%.o : $(SRCDIR)/%.c Makefile
 
 PROJ_NAME=codEditor
 
-all: $(OBJS)
+all: $(OBJS) 
 	$(CC) $^ $(CFLAGS) -o $(PROJ_NAME) $(LDFLAGS)
+
+configure:
+	mkdir out
+	mkdir shared
 
 clean:
 	rm out/* && rm codEditor
+	rmdir out shared
 

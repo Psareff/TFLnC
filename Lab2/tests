@@ -1,8 +1,0 @@
-Operation operation = (int x, int y)->x+y;
-operation = (int x, int y) -> x + y;
-operation = (double x) -> x * x;
-operation = () -> 30 + 20;
-operation = () -> 100;
-operation = () -> { int x; int y; x * y};
-
-regexp: https://regex101.com/r/IQpLTu/3

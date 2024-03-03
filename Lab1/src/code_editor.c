@@ -9,6 +9,8 @@ static void activate(GtkApplication *app, gpointer user_data);
 static void init_window();
 static void init_code();
 static void init_menu();
+static void init_panel();
+static void init_status();
 static void highlight_word();
 
 static gboolean code_key_pressed(GtkWidget *widget, GdkEventKey *event);
@@ -35,7 +37,7 @@ void destroy (GtkWidget* widget, gpointer data);
 static void activate(GtkApplication *app, gpointer user_data)
 {
 	editor.builder = gtk_builder_new();
-	gtk_builder_add_from_file(editor.builder, "src/main_window.ui", NULL);
+	gtk_builder_add_from_file(editor.builder, "src/main_window_copy.ui", NULL);
 	
 	GObject *obj = gtk_builder_get_object(editor.builder, "quit_doc");
 	g_signal_connect(GTK_MENU_ITEM(obj), "activate", G_CALLBACK(destroy), app);
@@ -51,6 +53,8 @@ static void init_window()
 	editor.window = gtk_builder_get_object(editor.builder, "window");
 	init_code();
 	init_menu();
+	init_panel();
+	init_status();
 }
 
 static void init_code()
@@ -117,6 +121,46 @@ static void init_menu()
 	obj = gtk_builder_get_object(editor.builder, "faq");
 	g_signal_connect(GTK_MENU_ITEM(obj), "activate", G_CALLBACK(faq_pressed), NULL);
 }
+
+static void init_panel()
+{
+	GObject *obj = gtk_builder_get_object(editor.builder, "new_panel");
+	g_signal_connect(GTK_BUTTON(obj), "clicked", G_CALLBACK(new_doc_pressed), NULL);
+
+	obj = gtk_builder_get_object(editor.builder, "open_panel");
+	g_signal_connect(GTK_BUTTON(obj), "clicked", G_CALLBACK(open_doc_pressed), NULL);
+
+	obj = gtk_builder_get_object(editor.builder, "save_panel");
+	g_signal_connect(GTK_BUTTON(obj), "clicked", G_CALLBACK(save_doc_pressed), NULL);
+
+	obj = gtk_builder_get_object(editor.builder, "undo_panel");
+	g_signal_connect(GTK_BUTTON(obj), "clicked", G_CALLBACK(undo_pressed), NULL);
+
+	obj = gtk_builder_get_object(editor.builder, "redo_panel");
+	g_signal_connect(GTK_BUTTON(obj), "clicked", G_CALLBACK(redo_pressed), NULL);
+
+	obj = gtk_builder_get_object(editor.builder, "cut_panel");
+	g_signal_connect(GTK_BUTTON(obj), "clicked", G_CALLBACK(cut_pressed), NULL);
+
+	obj = gtk_builder_get_object(editor.builder, "copy_panel");
+	g_signal_connect(GTK_BUTTON(obj), "clicked", G_CALLBACK(copy_pressed), NULL);
+
+	obj = gtk_builder_get_object(editor.builder, "paste_panel");
+	g_signal_connect(GTK_BUTTON(obj), "clicked", G_CALLBACK(paste_pressed), NULL);
+
+	obj = gtk_builder_get_object(editor.builder, "faq_panel");
+	g_signal_connect(GTK_BUTTON(obj), "clicked", G_CALLBACK(faq_pressed), NULL);
+
+	obj = gtk_builder_get_object(editor.builder, "about_panel");
+	g_signal_connect(GTK_BUTTON(obj), "clicked", G_CALLBACK(about_pressed), NULL);	
+}
+
+static void init_status()
+{
+
+	editor.status = gtk_builder_get_object(editor.builder, "status");
+}
+
 
 static void undo_pressed (GtkWidget *widget, gpointer data)
 {
@@ -210,7 +254,8 @@ static void code_text_buffer_changed(GtkWidget *widget, GdkEventKey *event)
 	
 
 	editor.arr[current_buffer_pos] = text;
-	if (current_buffer_pos < BUFFER_LOGS_COUNT)
+
+	if (current_buffer_pos != BUFFER_LOGS_COUNT)
 		current_buffer_pos++;
 	else
 		for (int i = 0; i < current_buffer_pos; i++)
@@ -259,15 +304,15 @@ static void code_scrolled(GtkWidget *widget, GdkEvent *event)
 		gtk_text_buffer_get_bounds(editor.code_view.buffer, &editor.code_view.start, &editor.code_view.end);
 		if (scroll_event->delta_y < 0.0)
 		{
-				g_print("Increase, cur=%d\n", current_font);
-				current_font += current_font == DYNAMIC_FONTS_COUNT - 1 ? 0 : 1;
-				gtk_text_buffer_apply_tag_by_name(editor.code_view.buffer, fonts[current_font], &editor.code_view.start, &editor.code_view.end);
+			g_print("Increase, cur=%d\n", current_font);
+			current_font += current_font == DYNAMIC_FONTS_COUNT - 1 ? 0 : 1;
+			gtk_text_buffer_apply_tag_by_name(editor.code_view.buffer, fonts[current_font], &editor.code_view.start, &editor.code_view.end);
 		}
 		if (scroll_event->delta_y > 0.0)
 		{
-				g_print("Decrease, cur=%d\n", current_font);
-				gtk_text_buffer_remove_tag_by_name(editor.code_view.buffer, fonts[current_font], &editor.code_view.start, &editor.code_view.end);
-				current_font -= current_font == 0 ? 0 : 1;
+			g_print("Decrease, cur=%d\n", current_font);
+			gtk_text_buffer_remove_tag_by_name(editor.code_view.buffer, fonts[current_font], &editor.code_view.start, &editor.code_view.end);
+			current_font -= current_font == 0 ? 0 : 1;
 		}
 	}
 }
@@ -294,10 +339,28 @@ static void new_doc_pressed(GtkWidget *widget, gpointer data)
 	save_doc_pressed(widget, data);
 
 	if (editor.fp)
+	{
 		fclose(editor.fp);
+		gtk_statusbar_pop(GTK_STATUSBAR(editor.status), 1);
+	}
 	editor.not_saved = 0;
 	gtk_text_buffer_set_text(editor.code_view.buffer, "", 0);
 	g_print("New doc created!\n");
+}
+
+char  *get_filename(FILE *f) {
+	int fd;
+	char fd_path[255];
+	char *filename = malloc(255);
+	ssize_t n;
+
+	fd = fileno(f);
+	sprintf(fd_path, "/proc/self/fd/%d", fd);
+	n = readlink(fd_path, filename, 255);
+	if (n < 0)
+		return NULL;
+	filename[n] = '\0';
+	return filename;
 }
 
 static void open_doc_pressed(GtkWidget *widget, gpointer data)
@@ -337,7 +400,9 @@ static void open_doc_pressed(GtkWidget *widget, gpointer data)
 		fread(text, 1, size, editor.fp);
 
 		gtk_text_buffer_set_text(editor.code_view.buffer, text, size);
+		gtk_statusbar_push(GTK_STATUSBAR(editor.status), 1, get_filename(editor.fp));
 	}
+
 	gtk_widget_destroy (dialog);
 }
 
@@ -350,10 +415,14 @@ static void save_doc_pressed(GtkWidget *widget, gpointer data)
 	{
 		fprintf(editor.fp, text);
 		editor.not_saved = 0;
+		gtk_statusbar_push(GTK_STATUSBAR(editor.status), 1, get_filename(editor.fp));
 	}
-		// write file
 	else if (editor.not_saved && !editor.fp)
+	{
 		save_as_doc_pressed(widget, data);
+	}
+	else return;
+	gtk_statusbar_pop(GTK_STATUSBAR(editor.status), 1);
 	return;
 }
 
@@ -386,6 +455,8 @@ static void save_as_doc_pressed(GtkWidget *widget, gpointer data)
 		editor.fp = fopen(gtk_file_chooser_get_filename (chooser), "w+");
 		fprintf(editor.fp, text);
 		editor.not_saved = 0;
+		gtk_statusbar_push(GTK_STATUSBAR(editor.status), 1, get_filename(editor.fp));
+		printf(get_filename(editor.fp));
 	}
 	gtk_widget_destroy (dialog);
 
